@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from model import db, User
+from model import db, User, Plants
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///app.db'
@@ -44,3 +44,20 @@ def create_user():
         return jsonify(user.to_dict()), 201
     except:
         return jsonify({"message": "Error creating user"}), 404
+    
+@app.route('/users/<int:user_id>/plants', methods=['GET'])
+def get_user_plants(user_id):
+    try:
+        
+        user = User.query.get_or_404(user_id)
+        
+        plants = user.plants  
+        
+        if not plants:
+            return jsonify({"message": "User has no plants"}), 200
+
+        return jsonify([plant.to_dict() for plant in plants])
+        
+    except Exception as e:
+        return jsonify({"message": "Error retrieving plants", "error": str(e)}), 500
+    
