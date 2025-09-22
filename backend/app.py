@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from model import db, User, Plants
+from model import db, User, Plants, Species
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///app.db'
@@ -58,6 +58,59 @@ def get_user_plants(user_id):
 
         return jsonify([plant.to_dict() for plant in plants])
         
-    except Exception as e:
-        return jsonify({"message": "Error retrieving plants", "error": str(e)}), 500
+    except:
+        return jsonify({"message": "Error retrieving plants"}), 500
+
+
+@app.route('/plants', methods=['GET'])
+def get_plants():
+    try:
+        user_id = request.args.get('user_id')
+        
+        if user_id:
+            plants = Plants.query.filter(Plants.users.any(id=user_id)).all()
+        else:
+            plants = Plants.query.all()
+        
+        return jsonify([plant.to_dict() for plant in plants])
+        
+    except:
+        return jsonify({"message": "Error retrieving plants"}), 500
     
+@app.route('/plants', methods=['POST'])
+def create_plant():
+    try:
+        data = request.get_json()
+        
+        if not data or 'nickname' not in data or 'species_id' not in data:
+            return jsonify({"message": "Nickname and species_id are required"}), 400
+        
+        plant = Plants(
+            nickname=data['nickname'],
+            species_id=data['species_id']
+        )
+        
+        db.session.add(plant)
+        db.session.commit()
+        
+        return jsonify(plant.to_dict()), 201
+        
+    except:
+        db.session.rollback()
+        return jsonify({"message": "Error creating plant"}), 500
+
+@app.route('/plants/<int:id>', methods=['DELETE'])
+def delete_plant(id):
+    try:
+        plant = Plants.query.get_or_404(id)
+        
+        db.session.delete(plant)
+        db.session.commit()
+        
+        return jsonify({"message": "Plant deleted successfully"}), 200
+        
+    except:
+        db.session.rollback()
+        return jsonify({"message": "Error deleting plant"}), 500
+    
+    # Saved
