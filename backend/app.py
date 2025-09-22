@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from model import db, User, Plants
+from model import db, User, Plants, Species
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///app.db'
