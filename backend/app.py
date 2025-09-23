@@ -114,3 +114,14 @@ def delete_plant(id):
         return jsonify({"message": "Error deleting plant"}), 500
     
     # Saved
+
+@app.route('/species', methods=['GET'])
+def get_all_species():
+    try:
+        species = Species.query.all()
+        return jsonify([specie.to_dict() for specie in species]), 201
+    except:
+        return jsonify({"message": "Error retrieveing species"}), 500
+
+if __name__ == '__main__':
+    app.run(port=5555, debug=True)
