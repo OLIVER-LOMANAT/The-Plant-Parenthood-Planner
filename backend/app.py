@@ -123,5 +123,41 @@ def get_all_species():
     except:
         return jsonify({"message": "Error retrieveing species"}), 500
 
+
+@app.route('/species', methods=['POST'])
+def create_species():
+    try:
+        data = request.get_json()
+        
+        required_fields = ['common_name', 'scientific_name', 'watering_frequency']
+        if not data or not all(field in data for field in required_fields):
+            return jsonify({"message": "Common name, scientific name, and watering frequency are required"}), 400
+        
+        existing_species = Species.query.filter_by(scientific_name=data['scientific_name']).first()
+        if existing_species:
+            return jsonify({"message": "Species with this scientific name already exists"}), 409
+        
+        species = Species(
+            common_name=data['common_name'],
+            scientific_name=data['scientific_name'],
+            watering_frequency=data['watering_frequency']
+        )
+        
+        db.session.add(species)
+        db.session.commit()
+        
+        return jsonify(species.to_dict()), 201
+        
+    except:
+        db.session.rollback()
+        return jsonify({"message": "Error creating species"}), 500
+    
+@app.route('/species/<int:id>', methods=['GET'])
+def get_species(id):
+    try:
+        species = Species.query.get_or_404(id)
+        return jsonify(species.to_dict())
+    except Exception as e:
+        return jsonify({"message": "Species not found", "error": str(e)}), 404
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
