@@ -3,7 +3,6 @@ from sqlalchemy_serializer import SerializerMixin
 
 db = SQLAlchemy()
 
-
 plant_owner = db.Table('plant_owner',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
     db.Column('plant_id', db.Integer, db.ForeignKey('plants.id'), primary_key=True)
@@ -21,7 +20,14 @@ class User(db.Model, SerializerMixin):
 
     serialize_rules = ('-plants.users', '-care_events.user', '-plants.care_events')
 
-    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'plants': [ {'id': plant.id, 'nickname': plant.nickname} for plant in self.plants ]
+        }
+
 class Species(db.Model, SerializerMixin):
     __tablename__ = 'species'
     
@@ -33,8 +39,14 @@ class Species(db.Model, SerializerMixin):
     plants = db.relationship('Plants', back_populates='species')
     
     serialize_rules = ('-plants.species',)
-    
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'common_name': self.common_name,
+            'scientific_name': self.scientific_name,
+            'watering_frequency': self.watering_frequency
+        }
 
 class Plants(db.Model, SerializerMixin):
     __tablename__ = 'plants'  
@@ -49,8 +61,16 @@ class Plants(db.Model, SerializerMixin):
     
     serialize_rules = ('-users.plants', '-species.plants', '-care_events.plant')
 
-
-    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nickname': self.nickname,
+            'species_id': self.species_id,
+            'species': {
+                'id': self.species.id,
+                'common_name': self.species.common_name
+            } if self.species else None
+        }
 
 class Care_Events(db.Model, SerializerMixin):
     __tablename__ = 'care_events'
@@ -66,4 +86,13 @@ class Care_Events(db.Model, SerializerMixin):
     plant = db.relationship('Plants', back_populates='care_events')  
     
     serialize_rules = ('-user.care_events', '-plant.care_events')
-    
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'event_type': self.event_type,
+            'notes': self.notes,
+            'event_date': self.event_date.isoformat() if self.event_date else None,
+            'user_id': self.user_id,
+            'plant_id': self.plant_id
+        }
