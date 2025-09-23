@@ -1,5 +1,6 @@
-from app import app
-from model import db, User, Species, Plants, Care_Events
+from datetime import date
+from app import app, db
+from model import User, Species, Plants, Care_Events
 
 def seed_data():
     with app.app_context():
@@ -44,14 +45,14 @@ def seed_data():
             Care_Events(
                 event_type='watering',
                 notes='First watering',
-                event_date='2024-01-15',
+                event_date=date(2024, 1, 15), 
                 user=users[0],
                 plant=plants[0]
             ),
             Care_Events(
                 event_type='fertilizing',
                 notes='Organic fertilizer',
-                event_date='2024-01-10',
+                event_date=date(2024, 1, 10), 
                 user=users[1],
                 plant=plants[1]
             )
