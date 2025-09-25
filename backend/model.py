@@ -14,11 +14,12 @@ class User(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
+    password_hash = db.Column(db.String(128))  # Add this line
 
     plants = db.relationship('Plants', secondary=plant_owner, back_populates='users')
     care_events = db.relationship('Care_Events', back_populates='user')
 
-    serialize_rules = ('-plants.users', '-care_events.user', '-plants.care_events')
+    serialize_rules = ('-plants.users', '-care_events.user', '-plants.care_events', '-password_hash')
 
     def to_dict(self):
         return {
