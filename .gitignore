@@ -1,23 +1,20 @@
-# Create/update .gitignore
-cat > .gitignore << 'EOF'
-# Virtual environment
-venv/
-.env
-
-# Python cache
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Database
-instance/
-*.db
-*.sqlite3
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
@@ -25,8 +22,7 @@ Thumbs.db
 
 # Logs
 *.log
-EOF
+
 # Additional virtual environment paths
 backend/venv/
 */venv/
-backend/venv/
