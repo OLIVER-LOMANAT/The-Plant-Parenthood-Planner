@@ -29,3 +29,4 @@ EOF
 # Additional virtual environment paths
 backend/venv/
 */venv/
+backend/venv/
