@@ -19,3 +19,10 @@ venv.bak/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+
+# Additional virtual environment paths
+backend/venv/
+*/venv/
