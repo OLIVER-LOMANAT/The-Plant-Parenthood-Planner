@@ -26,3 +26,6 @@ Thumbs.db
 # Logs
 *.log
 EOF
+# Additional virtual environment paths
+backend/venv/
+*/venv/
