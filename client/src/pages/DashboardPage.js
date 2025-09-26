@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import Dashboard from '../components/Dashboard';
 import { apiService } from '../services/api';
@@ -9,29 +9,21 @@ const DashboardPage = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  useEffect(() => {
-    if (selectedUser) {
-      loadDashboard(selectedUser);
-    }
-  }, [selectedUser]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
-      const usersData = await apiService.getUsers();
+      const response = await apiService.getUsers();
+      const usersData = Array.isArray(response) ? response : response?.users || response?.data || [];
       setUsers(usersData);
       if (usersData.length > 0 && !selectedUser) {
         setSelectedUser(usersData[0].id);
       }
     } catch (error) {
       toast.error('Error loading users');
+      setUsers([]);
     }
-  };
+  }, [selectedUser]);
 
-  const loadDashboard = async (userId) => {
+  const loadDashboard = useCallback(async (userId) => {
     setLoading(true);
     try {
       const data = await apiService.getUserDashboard(userId);
@@ -41,7 +33,17 @@ const DashboardPage = () => {
       setDashboardData(null);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      loadDashboard(selectedUser);
+    }
+  }, [selectedUser, loadDashboard]);
 
   const handlePlantDelete = (plantId) => {
     setDashboardData(prev => ({
@@ -58,7 +60,6 @@ const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header Section */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -66,7 +67,6 @@ const DashboardPage = () => {
               <p className="text-gray-600 mt-2">Manage and monitor your plant collection</p>
             </div>
             
-            {/* User Selector */}
             <div className="flex items-center space-x-3">
               <label htmlFor="user-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
                 Viewing as:
@@ -77,7 +77,7 @@ const DashboardPage = () => {
                 onChange={(e) => handleUserChange(parseInt(e.target.value))}
                 className="rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 min-w-[150px]"
               >
-                {users.map(user => (
+                {Array.isArray(users) && users.map(user => (
                   <option key={user.id} value={user.id}>
                     {user.username}
                   </option>
@@ -87,7 +87,6 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Dashboard Component */}
         <Dashboard 
           user={dashboardData?.user}
           plants={dashboardData?.plants}

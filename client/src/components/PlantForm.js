@@ -28,19 +28,23 @@ const PlantForm = ({ onPlantAdded }) => {
 
   const loadSpecies = async () => {
     try {
-      const speciesData = await apiService.getSpecies();
+      const response = await apiService.getSpecies();
+      const speciesData = Array.isArray(response) ? response : response?.species || response?.data || [];
       setSpecies(speciesData);
     } catch (error) {
       toast.error('Error loading species');
+      setSpecies([]);
     }
   };
 
   const loadUsers = async () => {
     try {
-      const usersData = await apiService.getUsers();
+      const response = await apiService.getUsers();
+      const usersData = Array.isArray(response) ? response : response?.users || response?.data || [];
       setUsers(usersData);
     } catch (error) {
       toast.error('Error loading users');
+      setUsers([]);
     }
   };
 
@@ -127,7 +131,7 @@ const PlantForm = ({ onPlantAdded }) => {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 >
                   <option value="">Select a species</option>
-                  {species.map((spec) => (
+                  {Array.isArray(species) && species.map((spec) => (
                     <option key={spec.id} value={spec.id}>
                       {spec.common_name} ({spec.scientific_name})
                     </option>
@@ -146,7 +150,7 @@ const PlantForm = ({ onPlantAdded }) => {
                   name="user_id"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 >
-                  {users.map((user) => (
+                  {Array.isArray(users) && users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.username}
                     </option>
