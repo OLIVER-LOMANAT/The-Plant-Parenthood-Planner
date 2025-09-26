@@ -108,6 +108,10 @@ def login():
     except Exception as e:
         return jsonify({"message": "Error during login", "error": str(e)}), 500
 
+@app.route('/')
+def home():
+    return '<h1>Welcome to our homepage</h1>'
+
 @app.route('/home')
 def homePage():
     return '<h1>Welcome to our homepage</h1>'
