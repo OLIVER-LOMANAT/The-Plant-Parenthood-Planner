@@ -8,7 +8,7 @@ The app helps plant lovers track their plants, species details, and care events.
 ## Features
 - Dashboard to view all plants
 - Add, edit, and delete plants
-- Track plant care events (watering, fertilizing, etc
+- Track plant care events (watering, fertilizing, etc)
 - Integrated with Flask backend API
 
 ---
