@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5555';
+const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5555';
 
 export const apiService = {
   // Users
