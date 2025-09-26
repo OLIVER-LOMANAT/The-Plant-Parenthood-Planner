@@ -108,6 +108,7 @@ def login():
     except Exception as e:
         return jsonify({"message": "Error during login", "error": str(e)}), 500
 
+# Main Home
 @app.route('/')
 def home():
     return '<h1>Welcome to our homepage</h1>'
@@ -312,7 +313,6 @@ def get_all_species():
 
 @app.route('/species', methods=['POST'])
 def create_species():
-    # Manual authentication check
     current_user, error_response, status_code = verify_token()
     if error_response:
         return error_response, status_code
