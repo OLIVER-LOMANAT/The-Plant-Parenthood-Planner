@@ -82,9 +82,24 @@ def user_dashboard(user_id):
             last_care = Care_Events.query.filter_by(plant_id=plant.id)\
                           .order_by(Care_Events.event_date.desc()).first()
             
-            plant_info = plant.to_dict()
-            plant_info['last_care_date'] = last_care.event_date.isoformat() if last_care else None
-            plant_info['last_care_type'] = last_care.event_type if last_care else None
+            # Get full species information
+            species_info = None
+            if plant.species:
+                species_info = {
+                    'id': plant.species.id,
+                    'common_name': plant.species.common_name,
+                    'scientific_name': plant.species.scientific_name,
+                    'watering_frequency': plant.species.watering_frequency
+                }
+            
+            plant_info = {
+                'id': plant.id,
+                'nickname': plant.nickname,
+                'species_id': plant.species_id,
+                'species': species_info,  # Include full species data
+                'last_care_date': last_care.event_date.isoformat() if last_care else None,
+                'last_care_type': last_care.event_type if last_care else None
+            }
             
             plants_data.append(plant_info)
         

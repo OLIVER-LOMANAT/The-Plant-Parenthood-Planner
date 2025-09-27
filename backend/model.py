@@ -62,14 +62,20 @@ class Plants(db.Model, SerializerMixin):
     serialize_rules = ('-users.plants', '-species.plants', '-care_events.plant')
 
     def to_dict(self):
+        species_info = None
+        if self.species:
+            species_info = {
+                'id': self.species.id,
+                'common_name': self.species.common_name,
+                'scientific_name': self.species.scientific_name,
+                'watering_frequency': self.species.watering_frequency
+            }
+        
         return {
             'id': self.id,
             'nickname': self.nickname,
             'species_id': self.species_id,
-            'species': {
-                'id': self.species.id,
-                'common_name': self.species.common_name
-            } if self.species else None
+            'species': species_info 
         }
 
 class Care_Events(db.Model, SerializerMixin):
