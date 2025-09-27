@@ -13,36 +13,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Updated CORS configuration to allow both localhost and Vercel
-CORS(app, resources={
-    r"/*": {
-        "origins": [
-            "https://the-plant-parenthood-planner.vercel.app",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000"
-        ],
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "X-Requested-With"],
-        "supports_credentials": True
-    }
-})
-
-@app.after_request
-def after_request(response):
-    # Allow multiple origins dynamically
-    origin = request.headers.get('Origin')
-    allowed_origins = [
-        "https://the-plant-parenthood-planner.vercel.app",
-        "http://localhost:3000", 
-        "http://127.0.0.1:3000"
-    ]
-    
-    if origin in allowed_origins:
-        response.headers.add('Access-Control-Allow-Origin', origin)
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,X-Requested-With')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    response.headers.add('Access-Control-Allow-Credentials', 'true')
-    return response
+# Simple CORS - allow all origins
+CORS(app)
 
 @app.route('/check-data', methods=['GET'])
 def check_data():
@@ -56,7 +28,6 @@ def check_data():
             'users_count': users_count,
             'species_count': species_count,
             'plants_count': plants_count,
-            'database_uri': app.config['SQLALCHEMY_DATABASE_URI'][:50] + '...' if len(app.config['SQLALCHEMY_DATABASE_URI']) > 50 else app.config['SQLALCHEMY_DATABASE_URI']
         }), 200
     except Exception as e:
         return jsonify({"message": "Error checking data", "error": str(e)}), 500
@@ -67,16 +38,8 @@ def home():
     return jsonify({
         "message": "Welcome to Plant Parenthood Planner API",
         "status": "running",
-        "endpoints": {
-            "check_data": "/check-data (GET)",
-            "users": "/users (GET)",
-            "dashboard": "/users/<user_id>/dashboard (GET)"
-        }
+        "version": "authentication-free"
     })
-
-@app.route('/home')
-def homePage():
-    return '<h1>Welcome to our homepage</h1>'
 
 @app.route('/users', methods=['GET'])
 def get_users():
