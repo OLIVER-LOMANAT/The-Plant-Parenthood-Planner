@@ -1,22 +1,18 @@
 # init_db.py
 import os
-from app import app, db
-from model import User, Species, Plants, Care_Events
 from datetime import date
-from flask_bcrypt import Bcrypt
+from app import app, db, bcrypt 
+from model import User, Species, Plants, Care_Events 
 
-bcrypt = Bcrypt()
 
 def init_database():
     with app.app_context():
-        # Create all tables
         db.create_all()
+        print("Database tables ensured.")
         
-        # Check if data already exists
         if User.query.first() is None:
             print("Seeding database...")
             
-            # Create users with passwords
             users = [
                 User(
                     username='plant_lover', 
@@ -63,16 +59,15 @@ def init_database():
             db.session.add_all(users + species + plants)
             db.session.commit()
 
-            # Assign plants to users
             plants[0].users.append(users[0])
             plants[1].users.append(users[0]) 
             plants[2].users.append(users[1]) 
-            plants[3].users.append(users[2])
+            plants[3].users.append(users[2]) 
 
             db.session.commit()
             print("Database seeded successfully!")
         else:
-            print("Database already contains data.")
+            print("Database already contains user data. Seeding skipped.")
 
 if __name__ == '__main__':
     init_database()
