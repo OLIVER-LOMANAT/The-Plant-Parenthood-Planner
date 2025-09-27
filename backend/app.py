@@ -13,7 +13,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# FIXED: Updated CORS configuration to allow both localhost and Vercel
+# Updated CORS configuration to allow both localhost and Vercel
 CORS(app, resources={
     r"/*": {
         "origins": [
@@ -29,7 +29,7 @@ CORS(app, resources={
 
 @app.after_request
 def after_request(response):
-    # FIXED: Allow multiple origins dynamically
+    # Allow multiple origins dynamically
     origin = request.headers.get('Origin')
     allowed_origins = [
         "https://the-plant-parenthood-planner.vercel.app",
