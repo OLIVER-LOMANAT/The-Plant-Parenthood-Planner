@@ -10,13 +10,36 @@ import os
 app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+# FIXED: Use PostgreSQL from Render environment variable
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 migrate = Migrate(app, db)
-CORS(app)
+
+# FIXED: Improved CORS configuration
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://the-plant-parenthood-planner.vercel.app",
+            "http://localhost:3000"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+        "supports_credentials": True
+    }
+})
+
 bcrypt = Bcrypt(app)
+
+# FIXED: Add this for preflight requests
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'https://the-plant-parenthood-planner.vercel.app')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
 
 def verify_token():
     token = request.headers.get('Authorization')
@@ -108,11 +131,44 @@ def login():
     except Exception as e:
         return jsonify({"message": "Error during login", "error": str(e)}), 500
 
+# FIXED: Add a public endpoint to check if seeded data exists
+@app.route('/check-data', methods=['GET'])
+def check_data():
+    """Public endpoint to check if database has seeded data"""
+    try:
+        users_count = User.query.count()
+        species_count = Species.query.count()
+        plants_count = Plants.query.count()
+        
+        return jsonify({
+            'users_count': users_count,
+            'species_count': species_count,
+            'plants_count': plants_count,
+            'database_uri': app.config['SQLALCHEMY_DATABASE_URI'][:50] + '...' if len(app.config['SQLALCHEMY_DATABASE_URI']) > 50 else app.config['SQLALCHEMY_DATABASE_URI']
+        }), 200
+    except Exception as e:
+        return jsonify({"message": "Error checking data", "error": str(e)}), 500
+
+# Main Home
+@app.route('/')
+def home():
+    return jsonify({
+        "message": "Welcome to Plant Parenthood Planner API",
+        "status": "running",
+        "endpoints": {
+            "check_data": "/check-data (GET)",
+            "register": "/register (POST)",
+            "login": "/login (POST)",
+            "users": "/users (GET)",
+            "dashboard": "/users/<user_id>/dashboard (GET)"
+        }
+    })
+
 @app.route('/home')
 def homePage():
     return '<h1>Welcome to our homepage</h1>'
 
-@app.route('/users')
+@app.route('/users', methods=['GET'])
 def get_users():
     current_user, error_response, status_code = verify_token()
     if error_response:
@@ -121,7 +177,7 @@ def get_users():
     users = User.query.all()
     return jsonify([user.to_dict() for user in users]), 200
 
-@app.route('/user/<int:id>')
+@app.route('/user/<int:id>', methods=['GET'])
 def get_user(id):
     current_user, error_response, status_code = verify_token()
     if error_response:
@@ -148,7 +204,7 @@ def create_user():
     except:
         return jsonify({"message": "Error creating user"}), 500
 
-@app.route('/users/<int:user_id>/dashboard')
+@app.route('/users/<int:user_id>/dashboard', methods=['GET'])
 def user_dashboard(user_id):
     current_user, error_response, status_code = verify_token()
     if error_response:
@@ -166,17 +222,18 @@ def user_dashboard(user_id):
                           .order_by(Care_Events.event_date.desc()).first()
             
             plant_info = plant.to_dict()
-            plant_info['last_care_date'] = last_care.event_date if last_care else None
+            plant_info['last_care_date'] = last_care.event_date.isoformat() if last_care else None
             plant_info['last_care_type'] = last_care.event_type if last_care else None
             
             plants_data.append(plant_info)
         
         return jsonify({
             'user': user.to_dict(),
-            'plants': plants_data
-        })
-    except:
-        return jsonify({"message": "Error loading dashboard"}), 500
+            'plants': plants_data,
+            'plants_count': len(plants_data)
+        }), 200
+    except Exception as e:
+        return jsonify({"message": "Error loading dashboard", "error": str(e)}), 500
 
 @app.route('/users/<int:user_id>/plants', methods=['GET'])
 def get_user_plants(user_id):
@@ -192,11 +249,11 @@ def get_user_plants(user_id):
         plants = user.plants
         
         if not plants:
-            return jsonify({"message": "User has no plants"}), 200
+            return jsonify({"message": "User has no plants", "plants": []}), 200
 
-        return jsonify([plant.to_dict() for plant in plants])
-    except:
-        return jsonify({"message": "Error retrieving plants"}), 500
+        return jsonify([plant.to_dict() for plant in plants]), 200
+    except Exception as e:
+        return jsonify({"message": "Error retrieving plants", "error": str(e)}), 500
 
 @app.route('/plants', methods=['GET'])
 def get_plants():
@@ -212,9 +269,9 @@ def get_plants():
         else:
             plants = Plants.query.all()
         
-        return jsonify([plant.to_dict() for plant in plants])
-    except:
-        return jsonify({"message": "Error retrieving plants"}), 500
+        return jsonify([plant.to_dict() for plant in plants]), 200
+    except Exception as e:
+        return jsonify({"message": "Error retrieving plants", "error": str(e)}), 500
 
 @app.route('/plants', methods=['POST'])
 def create_plant():
@@ -245,9 +302,9 @@ def create_plant():
         
         db.session.commit()
         return jsonify(plant.to_dict()), 201
-    except:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({"message": "Error creating plant"}), 500
+        return jsonify({"message": "Error creating plant", "error": str(e)}), 500
 
 @app.route('/plants/<int:plant_id>/care_events', methods=['POST'])
 def add_care_event(plant_id):
@@ -275,9 +332,9 @@ def add_care_event(plant_id):
         db.session.add(care_event)
         db.session.commit()
         return jsonify(care_event.to_dict()), 201
-    except:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({"message": "Error adding care event"}), 500
+        return jsonify({"message": "Error adding care event", "error": str(e)}), 500
 
 @app.route('/plants/<int:id>', methods=['DELETE'])
 def delete_plant(id):
@@ -290,9 +347,9 @@ def delete_plant(id):
         db.session.delete(plant)
         db.session.commit()
         return jsonify({"message": "Plant deleted successfully"}), 200
-    except:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({"message": "Error deleting plant"}), 500
+        return jsonify({"message": "Error deleting plant", "error": str(e)}), 500
 
 @app.route('/species', methods=['GET'])
 def get_all_species():
@@ -303,12 +360,11 @@ def get_all_species():
     try:
         species = Species.query.all()
         return jsonify([specie.to_dict() for specie in species]), 200
-    except:
-        return jsonify({"message": "Error retrieving species"}), 500
+    except Exception as e:
+        return jsonify({"message": "Error retrieving species", "error": str(e)}), 500
 
 @app.route('/species', methods=['POST'])
 def create_species():
-    # Manual authentication check
     current_user, error_response, status_code = verify_token()
     if error_response:
         return error_response, status_code
@@ -333,22 +389,23 @@ def create_species():
         db.session.add(species)
         db.session.commit()
         return jsonify(species.to_dict()), 201
-    except:
+    except Exception as e:
         db.session.rollback()
-        return jsonify({"message": "Error creating species"}), 500
+        return jsonify({"message": "Error creating species", "error": str(e)}), 500
 
 @app.route('/species/<int:id>', methods=['GET'])
 def get_species(id):
-    
     current_user, error_response, status_code = verify_token()
     if error_response:
         return error_response, status_code
     
     try:
         species = Species.query.get_or_404(id)
-        return jsonify(species.to_dict())
+        return jsonify(species.to_dict()), 200
     except Exception as e:
         return jsonify({"message": "Species not found", "error": str(e)}), 404
 
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+    with app.app_context():
+        db.create_all()
+    app.run(host='0.0.0.0', port=5000, debug=False)
