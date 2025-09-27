@@ -19,6 +19,7 @@ function App() {
           <Route path="/add-plant" element={<AddPlantPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        
         <ToastContainer
           position="top-right"
           autoClose={3000}
