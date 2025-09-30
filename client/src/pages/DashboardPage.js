@@ -1,48 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 import Dashboard from '../components/Dashboard';
 import { apiService } from '../services/api';
 
-const DashboardPage = () => {
+const DashboardPage = ({ user, onLogout }) => {
   const [dashboardData, setDashboardData] = useState(null);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  const loadUsers = async () => {
-    try {
-      const response = await apiService.getUsers();
-      console.log('Users response:', response);
-      
-      let usersData = [];
-      if (Array.isArray(response)) {
-        usersData = response;
-      } else if (response && response.users) {
-        usersData = response.users;
-      } else if (response && response.data) {
-        usersData = response.data;
-      }
-      
-      setUsers(usersData);
-      
-      if (usersData.length > 0 && !selectedUser) {
-        setSelectedUser(usersData[0].id);
-      }
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast.error('Error loading users: ' + error.message);
-      setUsers([]);
+  const loadDashboard = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  };
-
-  const loadDashboard = async (userId) => {
-    if (!userId) return;
     
     setLoading(true);
     try {
-      console.log('Loading dashboard for user:', userId);
-      const data = await apiService.getUserDashboard(userId);
-      console.log('Dashboard data:', data);
+      const data = await apiService.getUserDashboard();
       
       if (data && data.user) {
         setDashboardData(data);
@@ -53,23 +28,20 @@ const DashboardPage = () => {
       }
     } catch (error) {
       console.error('Error loading dashboard:', error);
-      toast.error('Error loading dashboard: ' + error.message);
+      if (error.message === 'Not authenticated') {
+        onLogout();
+        navigate('/login');
+      } else {
+        toast.error('Error loading dashboard: ' + error.message);
+      }
       setDashboardData(null);
     }
     setLoading(false);
   };
 
-  // Load users on component mount
   useEffect(() => {
-    loadUsers();
-  }, []);
-
-  // Load dashboard when user is selected
-  useEffect(() => {
-    if (selectedUser) {
-      loadDashboard(selectedUser);
-    }
-  }, [selectedUser]);
+    loadDashboard();
+  }, [user]);
 
   const handlePlantDelete = (plantId) => {
     setDashboardData(prev => ({
@@ -79,8 +51,15 @@ const DashboardPage = () => {
     toast.success('Plant deleted successfully!');
   };
 
-  const handleUserChange = (userId) => {
-    setSelectedUser(userId);
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+      onLogout();
+      navigate('/login');
+      toast.success('Logged out successfully!');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -93,24 +72,14 @@ const DashboardPage = () => {
               <p className="text-gray-600 mt-2">Manage and monitor your plant collection</p>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <label htmlFor="user-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                Viewing as:
-              </label>
-              <select
-                id="user-select"
-                value={selectedUser || ''}
-                onChange={(e) => handleUserChange(parseInt(e.target.value))}
-                className="rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 min-w-[150px]"
-                disabled={!users.length}
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-700">Welcome, {user?.username}!</span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
               >
-                <option value="">Select a user</option>
-                {Array.isArray(users) && users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.username}
-                  </option>
-                ))}
-              </select>
+                Logout
+              </button>
             </div>
           </div>
         </div>
