@@ -10,20 +10,15 @@ const plantSchema = Yup.object().shape({
     .min(2, 'Nickname must be at least 2 characters'),
   species_id: Yup.number()
     .required('Species is required')
-    .positive('Please select a species'),
-  user_id: Yup.number()
-    .required('User ID is required')
-    .positive('Please select a user')
+    .positive('Please select a species')
 });
 
-const PlantForm = ({ onPlantAdded }) => {
+const PlantForm = ({ onPlantAdded, user }) => {
   const [species, setSpecies] = useState([]);
-  const [users, setUsers] = useState([]);
   const [showSpeciesForm, setShowSpeciesForm] = useState(false);
 
   useEffect(() => {
     loadSpecies();
-    loadUsers();
   }, []);
 
   const loadSpecies = async () => {
@@ -34,17 +29,6 @@ const PlantForm = ({ onPlantAdded }) => {
     } catch (error) {
       toast.error('Error loading species');
       setSpecies([]);
-    }
-  };
-
-  const loadUsers = async () => {
-    try {
-      const response = await apiService.getUsers();
-      const usersData = Array.isArray(response) ? response : response?.users || response?.data || [];
-      setUsers(usersData);
-    } catch (error) {
-      toast.error('Error loading users');
-      setUsers([]);
     }
   };
 
@@ -85,8 +69,7 @@ const PlantForm = ({ onPlantAdded }) => {
         <Formik
           initialValues={{
             nickname: '',
-            species_id: '',
-            user_id: users[0]?.id || ''
+            species_id: ''
           }}
           validationSchema={plantSchema}
           onSubmit={handleSubmit}
@@ -139,25 +122,6 @@ const PlantForm = ({ onPlantAdded }) => {
                 </Field>
               )}
               <ErrorMessage name="species_id" component="div" className="text-red-500 text-sm mt-1" />
-
-              <div>
-                <label htmlFor="user_id" className="block text-sm font-medium text-gray-700">
-                  Owner
-                </label>
-                <Field
-                  as="select"
-                  id="user_id"
-                  name="user_id"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                >
-                  {Array.isArray(users) && users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.username}
-                    </option>
-                  ))}
-                </Field>
-                <ErrorMessage name="user_id" component="div" className="text-red-500 text-sm mt-1" />
-              </div>
 
               <button
                 type="submit"
