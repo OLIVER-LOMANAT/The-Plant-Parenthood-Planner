@@ -54,7 +54,6 @@ If you want to run this application on your own computer:
 ### Prerequisites
 
 - Python 3.8 or higher
-- Node.js 14 or higher
 - Git
 
 ### Backend Setup
@@ -62,6 +61,6 @@ If you want to run this application on your own computer:
 1. Clone the repository:
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/OLIVER-LOMANAT/The-Plant-Parenthood-Planner
 cd The-Plant-Parenthood-Planner/backend
 ```
