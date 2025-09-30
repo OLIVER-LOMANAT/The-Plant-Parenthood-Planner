@@ -21,7 +21,6 @@ const Navbar = ({ user, onLogout }) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="text-white text-xl font-bold flex items-center">
-              <span className="text-2xl mr-2">🌿</span>
               PlantCare
             </Link>
           </div>
