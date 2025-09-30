@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import Dashboard from '../components/Dashboard';
@@ -10,49 +10,38 @@ const DashboardPage = ({ user, onLogout }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const loadDashboard = useCallback(async () => {
+  useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
-    
-    if (loading) {
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const data = await apiService.getUserDashboard();
-      
-      if (data && data.user) {
-        setDashboardData(data);
-      } else if (data && data.message) {
-        setError(data.message);
-        toast.error(data.message);
-      } else {
-        setError('Failed to load dashboard');
-        toast.error('Failed to load dashboard');
-      }
-    } catch (error) {
-      setError(error.message);
-      
-      if (error.message === 'Not authenticated') {
-        toast.error('Session expired. Please login again.');
-      } else {
-        toast.error('Error loading dashboard: ' + error.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [user, navigate, loading]);
 
-  useEffect(() => {
-    if (user && !dashboardData && !error) {
-      loadDashboard();
-    }
-  }, [user, loadDashboard, dashboardData, error]);
+    const loadDashboard = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        console.log('Loading dashboard data...');
+        const data = await apiService.getUserDashboard();
+        console.log('Dashboard response:', data);
+        
+        if (data && data.user) {
+          setDashboardData(data);
+        } else {
+          setError('Failed to load dashboard data');
+          toast.error('Failed to load dashboard');
+        }
+      } catch (error) {
+        console.error('Dashboard error:', error);
+        setError(error.message);
+        toast.error('Error loading dashboard: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, [user, navigate]);
 
   const handlePlantDelete = (plantId) => {
     setDashboardData(prev => ({
@@ -75,9 +64,31 @@ const DashboardPage = ({ user, onLogout }) => {
 
   const handleRetry = () => {
     setError(null);
-    setDashboardData(null);
+    setLoading(true);
+    
+    const loadDashboard = async () => {
+      try {
+        const data = await apiService.getUserDashboard();
+        
+        if (data && data.user) {
+          setDashboardData(data);
+        } else {
+          setError('Failed to load dashboard data');
+          toast.error('Failed to load dashboard');
+        }
+      } catch (error) {
+        setError(error.message);
+        toast.error('Error loading dashboard: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadDashboard();
   };
+
+  // Check what's actually happening
+  console.log('DashboardPage state:', { loading, error, hasData: !!dashboardData, user });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -121,14 +132,25 @@ const DashboardPage = ({ user, onLogout }) => {
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <span className="ml-4 text-gray-600">Loading your plants...</span>
           </div>
-        ) : (
+        ) : dashboardData ? (
           <Dashboard 
-            user={dashboardData?.user}
-            plants={dashboardData?.plants || []}
+            user={dashboardData.user}
+            plants={dashboardData.plants || []}
             onPlantDelete={handlePlantDelete}
             loading={loading}
           />
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No dashboard data available</p>
+            <button
+              onClick={handleRetry}
+              className="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            >
+              Load Dashboard
+            </button>
+          </div>
         )}
       </div>
     </div>

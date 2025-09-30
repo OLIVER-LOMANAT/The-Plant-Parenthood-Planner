@@ -1,104 +1,64 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
-import Dashboard from '../components/Dashboard';
-import { apiService } from '../services/api';
+import React from 'react';
+import PlantCard from './PlantCard';
 
-const DashboardPage = ({ user, onLogout }) => {
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+const Dashboard = ({ user, plants, onPlantDelete, loading }) => {
+  console.log('Dashboard component rendering with:', { 
+    user: user?.username, 
+    plantsCount: plants?.length,
+    loading 
+  });
 
-  const loadDashboard = useCallback(async () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const data = await apiService.getUserDashboard();
-      
-      if (data && data.user) {
-        setDashboardData(data);
-      } else if (data && data.message) {
-        throw new Error(data.message);
-      } else {
-        throw new Error('Invalid dashboard response');
-      }
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-      if (error.message === 'Not authenticated') {
-        onLogout();
-        navigate('/login');
-      } else {
-        toast.error('Error loading dashboard: ' + error.message);
-      }
-      setDashboardData(null);
-    }
-    setLoading(false);
-  }, [user, navigate, onLogout]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-xl text-gray-600">Loading plants...</div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  const handlePlantDelete = (plantId) => {
-    setDashboardData(prev => ({
-      ...prev,
-      plants: prev.plants.filter(plant => plant.id !== plantId)
-    }));
-    toast.success('Plant deleted successfully!');
-  };
-
-  const handleLogout = async () => {
-    try {
-      await apiService.logout();
-      onLogout();
-      navigate('/login');
-      toast.success('Logged out successfully!');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  if (!plants || plants.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-6xl mb-4">🌱</div>
+        <h4 className="text-lg font-medium text-gray-900 mb-2">No plants yet</h4>
+        <p className="text-gray-600 mb-4">Start by adding your first plant to your collection!</p>
+        <a 
+          href="/add-plant" 
+          className="inline-block bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
+        >
+          Add Your First Plant
+        </a>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Plant Care Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage and monitor your plant collection</p>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user?.username}!</span>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Simple header */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Welcome back, {user?.username}!
+        </h2>
+        <p className="text-gray-600">
+          You have {plants.length} plant{plants.length !== 1 ? 's' : ''} in your care.
+        </p>
+      </div>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-          </div>
-        ) : (
-          <Dashboard 
-            user={dashboardData?.user}
-            plants={dashboardData?.plants || []}
-            onPlantDelete={handlePlantDelete}
-            loading={loading}
-          />
-        )}
+      {/* Plants grid - simplified */}
+      <div>
+        <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Plants</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plants.map(plant => (
+            <PlantCard 
+              key={plant.id} 
+              plant={plant} 
+              onPlantDelete={onPlantDelete}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
-export default DashboardPage;
+export default Dashboard;
