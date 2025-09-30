@@ -1,61 +1,126 @@
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://the-plant-parenthood-planner.onrender.com';
+const API_BASE = 'https://the-plant-parenthood-planner.onrender.com';
+
+// JWT Token management
+let authToken = localStorage.getItem('authToken');
 
 export const apiService = {
+  // Token management
+  setToken: (token) => {
+    authToken = token;
+    localStorage.setItem('authToken', token);
+  },
+  
+  getToken: () => {
+    return authToken;
+  },
+  
+  clearToken: () => {
+    authToken = null;
+    localStorage.removeItem('authToken');
+  },
+
+  // Get headers with JWT token
+  getAuthHeaders: () => {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+    return headers;
+  },
+
   // Authentication
   register: (userData) => 
     fetch(`${API_BASE}/register`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(userData),
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      body: JSON.stringify(userData)
+    }).then(async (res) => {
+      const data = await res.json();
+      if (data.token) {
+        apiService.setToken(data.token);
+      }
+      return data;
+    }),
 
   login: (userData) => 
     fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(userData),
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      body: JSON.stringify(userData)
+    }).then(async (res) => {
+      const data = await res.json();
+      if (data.token) {
+        apiService.setToken(data.token);
+      }
+      return data;
+    }),
 
-  logout: () => 
-    fetch(`${API_BASE}/logout`, {
+  logout: () => {
+    // Call backend logout and clear token
+    return fetch(`${API_BASE}/logout`, {
       method: 'POST',
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      headers: apiService.getAuthHeaders()
+    })
+    .then(res => res.json())
+    .finally(() => {
+      apiService.clearToken();
+    });
+  },
 
   checkAuth: () => 
     fetch(`${API_BASE}/check-auth`, {
-      credentials: 'include'  // IMPORTANT
+      headers: apiService.getAuthHeaders()
     }).then(res => res.json()),
 
-  // Plants
+  // Plants - PROTECTED ENDPOINTS
   getPlants: () => 
     fetch(`${API_BASE}/plants`, {
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      headers: apiService.getAuthHeaders()
+    }).then(res => {
+      if (res.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    }),
     
   getUserDashboard: () =>
     fetch(`${API_BASE}/dashboard`, {
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      headers: apiService.getAuthHeaders()
+    }).then(res => {
+      if (res.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    }),
     
   createPlant: (plantData) =>
     fetch(`${API_BASE}/plants`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(plantData),
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      headers: apiService.getAuthHeaders(),
+      body: JSON.stringify(plantData)
+    }).then(res => {
+      if (res.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    }),
     
   deletePlant: (plantId) =>
     fetch(`${API_BASE}/plants/${plantId}`, {
       method: 'DELETE',
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json()),
+      headers: apiService.getAuthHeaders()
+    }).then(res => {
+      if (res.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    }),
 
-  // Species (public endpoints)
-  getSpecies: () => fetch(`${API_BASE}/species`).then(res => res.json()),
+  // Species - PUBLIC ENDPOINTS
+  getSpecies: () => 
+    fetch(`${API_BASE}/species`).then(res => res.json()),
   
   createSpecies: (speciesData) =>
     fetch(`${API_BASE}/species`, {
@@ -64,12 +129,16 @@ export const apiService = {
       body: JSON.stringify(speciesData)
     }).then(res => res.json()),
 
-  // Care Events
+  // Care Events - PROTECTED ENDPOINTS
   addCareEvent: (plantId, careData) =>
     fetch(`${API_BASE}/plants/${plantId}/care_events`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(careData),
-      credentials: 'include'  // IMPORTANT
-    }).then(res => res.json())
+      headers: apiService.getAuthHeaders(),
+      body: JSON.stringify(careData)
+    }).then(res => {
+      if (res.status === 401) {
+        throw new Error('Not authenticated');
+      }
+      return res.json();
+    })
 };

@@ -24,25 +24,26 @@ const SignupPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (values, { setSubmitting }) => {
-    setIsLoading(true);
-    try {
-      const { confirmPassword, ...userData } = values;
-      const result = await apiService.register(userData);
-      
-      if (result.message === 'User created successfully' && result.user) {
-        toast.success('Account created successfully!');
-        onLogin(result.user);
-        navigate('/dashboard');
-      } else {
-        throw new Error(result.message || 'Registration failed');
-      }
-    } catch (error) {
-      toast.error(error.message || 'Error creating account');
+// In SignupPage.js, update the handleSubmit function:
+const handleSubmit = async (values, { setSubmitting }) => {
+  setIsLoading(true);
+  try {
+    const { confirmPassword, ...userData } = values;
+    const result = await apiService.register(userData);
+    
+    if (result.message === 'User created successfully' && result.user && result.token) {
+      toast.success('Account created successfully!');
+      onLogin(result.user, result.token); // Pass both user and token
+      navigate('/dashboard');
+    } else {
+      throw new Error(result.message || 'Registration failed');
     }
-    setIsLoading(false);
-    setSubmitting(false);
-  };
+  } catch (error) {
+    toast.error(error.message || 'Error creating account');
+  }
+  setIsLoading(false);
+  setSubmitting(false);
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

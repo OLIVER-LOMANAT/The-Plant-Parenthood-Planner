@@ -5,22 +5,62 @@ from datetime import datetime, date
 from flask_migrate import Migrate
 import os
 import bcrypt
+import jwt
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-
-# IMPORTANT: CORS configuration with credentials
-CORS(app, 
-     supports_credentials=True,
-     origins=["http://localhost:3000", "https://your-vercel-app.vercel.app"],  # Add your Vercel URL
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization"])
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-very-secret-key-here-for-jwt')
 
 db.init_app(app)
 migrate = Migrate(app, db)
+
+CORS(app, origins=["https://the-plant-parenthood-planner.vercel.app", "http://localhost:3000"])
+
+# JWT Functions
+def create_jwt_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
+        'iat': datetime.datetime.utcnow()
+    }
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+def verify_jwt_token(token):
+    try:
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        return payload['user_id']
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+# JWT Decorator for protected routes
+def jwt_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if not token or not token.startswith('Bearer '):
+            return jsonify({"message": "Token is missing"}), 401
+        
+        try:
+            token = token[7:]  # Remove 'Bearer ' prefix
+            user_id = verify_jwt_token(token)
+            if not user_id:
+                return jsonify({"message": "Invalid token"}), 401
+            
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"message": "User not found"}), 401
+                
+            return f(user, *args, **kwargs)
+        except Exception as e:
+            return jsonify({"message": "Token is invalid"}), 401
+    
+    return decorated
 
 @app.route('/check-data', methods=['GET'])
 def check_data():
@@ -42,7 +82,7 @@ def home():
     return jsonify({
         "message": "Welcome to Plant Parenthood Planner API",
         "status": "running",
-        "version": "with-authentication"
+        "version": "jwt-authentication"
     })
 
 @app.route('/register', methods=['POST'])
@@ -65,11 +105,13 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        session['user_id'] = user.id
+        # Create JWT token for new user
+        token = create_jwt_token(user.id)
         
         return jsonify({
             "message": "User created successfully",
-            "user": user.to_dict()
+            "user": user.to_dict(),
+            "token": token
         }), 201
     except Exception as e:
         return jsonify({"message": "Error creating user", "error": str(e)}), 500
@@ -85,10 +127,11 @@ def login():
         user = User.query.filter_by(username=data['username']).first()
         
         if user and user.check_password(data['password']):
-            session['user_id'] = user.id
+            token = create_jwt_token(user.id)
             return jsonify({
                 "message": "Login successful",
-                "user": user.to_dict()
+                "user": user.to_dict(),
+                "token": token
             }), 200
         else:
             return jsonify({"message": "Invalid username or password"}), 401
@@ -96,52 +139,32 @@ def login():
         return jsonify({"message": "Error during login", "error": str(e)}), 500
 
 @app.route('/logout', methods=['POST'])
-def logout():
-    session.pop('user_id', None)
+@jwt_required
+def logout(user):
+    # With JWT, logout is handled on the client side by removing the token
     return jsonify({"message": "Logged out successfully"}), 200
 
 @app.route('/check-auth', methods=['GET'])
 def check_auth():
-    user_id = session.get('user_id')
-    if user_id:
-        user = User.query.get(user_id)
-        if user:
-            return jsonify({
-                "authenticated": True,
-                "user": user.to_dict()
-            }), 200
+    token = request.headers.get('Authorization')
+    if token and token.startswith('Bearer '):
+        token = token[7:]
+        user_id = verify_jwt_token(token)
+        if user_id:
+            user = User.query.get(user_id)
+            if user:
+                return jsonify({
+                    "authenticated": True,
+                    "user": user.to_dict()
+                }), 200
     
     return jsonify({"authenticated": False}), 200
 
-def get_current_user():
-    user_id = session.get('user_id')
-    if user_id:
-        return User.query.get(user_id)
-    return None
-
-@app.route('/users', methods=['GET'])
-def get_users():
-    try:
-        users = User.query.all()
-        return jsonify([user.to_dict() for user in users]), 200
-    except Exception as e:
-        return jsonify({"message": "Error retrieving users", "error": str(e)}), 500
-
-@app.route('/user/<int:id>', methods=['GET'])
-def get_user(id):
-    try:
-        user = User.query.get_or_404(id)
-        return jsonify(user.to_dict()), 200
-    except:
-        return jsonify({"message": "User does not exist"}), 404
-
+# Protected routes with JWT
 @app.route('/dashboard', methods=['GET'])
-def user_dashboard():
+@jwt_required
+def user_dashboard(user):
     try:
-        user = get_current_user()
-        if not user:
-            return jsonify({"message": "Not authenticated"}), 401
-            
         plants_data = []
         
         for plant in user.plants:
@@ -177,12 +200,9 @@ def user_dashboard():
         return jsonify({"message": "Error loading dashboard", "error": str(e)}), 500
 
 @app.route('/plants', methods=['GET'])
-def get_plants():
+@jwt_required
+def get_plants(user):
     try:
-        user = get_current_user()
-        if not user:
-            return jsonify({"message": "Not authenticated"}), 401
-            
         plants = user.plants
         
         if not plants:
@@ -193,12 +213,9 @@ def get_plants():
         return jsonify({"message": "Error retrieving plants", "error": str(e)}), 500
 
 @app.route('/plants', methods=['POST'])
-def create_plant():
+@jwt_required
+def create_plant(user):
     try:
-        user = get_current_user()
-        if not user:
-            return jsonify({"message": "Not authenticated"}), 401
-            
         data = request.get_json()
         
         if not data or 'nickname' not in data or 'species_id' not in data:
@@ -221,12 +238,9 @@ def create_plant():
         return jsonify({"message": "Error creating plant", "error": str(e)}), 500
 
 @app.route('/plants/<int:plant_id>/care_events', methods=['POST'])
-def add_care_event(plant_id):
+@jwt_required
+def add_care_event(user, plant_id):
     try:
-        user = get_current_user()
-        if not user:
-            return jsonify({"message": "Not authenticated"}), 401
-            
         data = request.get_json()
         
         if not data or 'event_type' not in data:
@@ -248,12 +262,9 @@ def add_care_event(plant_id):
         return jsonify({"message": "Error adding care event", "error": str(e)}), 500
 
 @app.route('/plants/<int:id>', methods=['DELETE'])
-def delete_plant(id):
+@jwt_required
+def delete_plant(user, id):
     try:
-        user = get_current_user()
-        if not user:
-            return jsonify({"message": "Not authenticated"}), 401
-            
         plant = Plants.query.get_or_404(id)
         
         if user not in plant.users:
@@ -266,6 +277,7 @@ def delete_plant(id):
         db.session.rollback()
         return jsonify({"message": "Error deleting plant", "error": str(e)}), 500
 
+# Public routes (no JWT required)
 @app.route('/species', methods=['GET'])
 def get_all_species():
     try:

@@ -11,17 +11,12 @@ const DashboardPage = ({ user, onLogout }) => {
   const navigate = useNavigate();
 
   const loadDashboard = useCallback(async () => {
-    console.log('🔄 loadDashboard called, user exists:', !!user);
-    
     if (!user) {
-      console.log('❌ No user in state, redirecting to login');
       navigate('/login');
       return;
     }
     
-    // Prevent multiple simultaneous calls
     if (loading) {
-      console.log('⏳ Already loading, skipping...');
       return;
     }
     
@@ -29,45 +24,35 @@ const DashboardPage = ({ user, onLogout }) => {
     setError(null);
     
     try {
-      console.log('📡 Making dashboard API call...');
       const data = await apiService.getUserDashboard();
-      console.log('✅ Dashboard API response received');
       
       if (data && data.user) {
         setDashboardData(data);
-        console.log('✅ Dashboard loaded successfully');
       } else if (data && data.message) {
-        console.log('❌ Dashboard error message:', data.message);
         setError(data.message);
         toast.error(data.message);
       } else {
-        console.log('❌ Invalid dashboard response');
         setError('Failed to load dashboard');
         toast.error('Failed to load dashboard');
       }
     } catch (error) {
-      console.error('❌ Error loading dashboard:', error);
       setError(error.message);
       
-      // Show error but DON'T navigate or logout automatically
       if (error.message === 'Not authenticated') {
         toast.error('Session expired. Please login again.');
-        // Let user manually logout instead of forcing it
       } else {
         toast.error('Error loading dashboard: ' + error.message);
       }
     } finally {
       setLoading(false);
     }
-  }, [user, navigate, loading]); // Added loading to dependencies
+  }, [user, navigate, loading]);
 
-  // Load dashboard only once when component mounts or user changes
   useEffect(() => {
-    console.log('🎯 DashboardPage useEffect triggered');
     if (user && !dashboardData && !error) {
       loadDashboard();
     }
-  }, [user, loadDashboard, dashboardData, error]); // Added more dependencies
+  }, [user, loadDashboard, dashboardData, error]);
 
   const handlePlantDelete = (plantId) => {
     setDashboardData(prev => ({
@@ -78,7 +63,6 @@ const DashboardPage = ({ user, onLogout }) => {
   };
 
   const handleManualLogout = async () => {
-    console.log('👤 User initiated manual logout');
     try {
       await apiService.logout();
       onLogout();

@@ -21,40 +21,48 @@ function App() {
 
   const checkAuth = async () => {
     try {
-      console.log('🔍 Checking authentication...');
+      const token = apiService.getToken();
+      
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       const result = await apiService.checkAuth();
-      console.log('🔍 Auth check result:', result);
       
       if (result.authenticated && result.user) {
         setUser(result.user);
-        console.log('✅ User authenticated:', result.user.username);
       } else {
-        console.log('❌ User not authenticated');
         setUser(null);
+        apiService.clearToken();
       }
     } catch (error) {
-      console.error('❌ Auth check failed:', error);
       setUser(null);
+      apiService.clearToken();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogin = (userData) => {
-    console.log('✅ Login successful, setting user:', userData.username);
+  const handleLogin = (userData, token) => {
+    if (token) {
+      apiService.setToken(token);
+    }
     setUser(userData);
   };
 
   const handleLogout = async () => {
-    console.log('🔄 Manual logout initiated');
     try {
-      await apiService.logout();
-      console.log('✅ Logout API call successful');
+      const token = apiService.getToken();
+      if (token) {
+        await apiService.logout();
+      }
     } catch (error) {
-      console.error('❌ Logout API error:', error);
+      console.error('Logout error:', error);
     } finally {
-      console.log('🔴 Clearing user state');
       setUser(null);
+      apiService.clearToken();
     }
   };
 
@@ -62,6 +70,7 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+        <span className="ml-4 text-gray-600">Loading...</span>
       </div>
     );
   }

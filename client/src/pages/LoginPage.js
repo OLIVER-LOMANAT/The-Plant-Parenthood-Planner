@@ -6,11 +6,8 @@ import { apiService } from '../services/api';
 import { useNavigate, Link } from 'react-router-dom';
 
 const loginSchema = Yup.object().shape({
-  username: Yup.string()
-    .required('Username is required'),
-  password: Yup.string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters')
+  username: Yup.string().required('Username is required'),
+  password: Yup.string().required('Password is required').min(6, 'Password must be at least 6 characters')
 });
 
 const LoginPage = ({ onLogin }) => {
@@ -18,23 +15,18 @@ const LoginPage = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    console.log('🔄 Login form submitted:', values.username);
     setIsLoading(true);
     try {
       const result = await apiService.login(values);
-      console.log('✅ Login API response:', result);
       
       if (result.message === 'Login successful' && result.user) {
-        console.log('✅ Calling onLogin with user:', result.user.username);
         toast.success('Login successful!');
-        onLogin(result.user);
+        onLogin(result.user, result.token);
         navigate('/dashboard');
       } else {
-        console.log('❌ Login failed:', result.message);
         throw new Error(result.message || 'Login failed');
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
       toast.error(error.message || 'Error during login');
     }
     setIsLoading(false);
@@ -92,6 +84,7 @@ const LoginPage = ({ onLogin }) => {
                     type="password"
                     id="password"
                     name="password"
+                    autoComplete="current-password"
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
                     placeholder="Enter your password"
                   />
