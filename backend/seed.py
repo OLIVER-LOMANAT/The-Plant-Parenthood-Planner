@@ -14,6 +14,9 @@ def seed_data():
             User(username='urban_gardener', email='gardener@email.com')
         ]
 
+        for user in users:
+            user.set_password('password123')
+
         species = [
             Species(
                 common_name='Snake Plant', 
