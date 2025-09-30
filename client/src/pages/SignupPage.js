@@ -24,7 +24,6 @@ const SignupPage = ({ onLogin }) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-// In SignupPage.js, update the handleSubmit function:
 const handleSubmit = async (values, { setSubmitting }) => {
   setIsLoading(true);
   try {
@@ -33,7 +32,7 @@ const handleSubmit = async (values, { setSubmitting }) => {
     
     if (result.message === 'User created successfully' && result.user && result.token) {
       toast.success('Account created successfully!');
-      onLogin(result.user, result.token); // Pass both user and token
+      onLogin(result.user, result.token);
       navigate('/dashboard');
     } else {
       throw new Error(result.message || 'Registration failed');
@@ -49,7 +48,6 @@ const handleSubmit = async (values, { setSubmitting }) => {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="text-4xl">🌱</div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Create your account

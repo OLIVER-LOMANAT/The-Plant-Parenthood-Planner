@@ -29,7 +29,7 @@ return (
           className="text-red-500 hover:text-red-700 transition-colors"
           title="Delete plant"
         >
-          🗑️
+          DELETE
         </button>
       </div>
       

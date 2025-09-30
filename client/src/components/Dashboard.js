@@ -19,7 +19,6 @@ const Dashboard = ({ user, plants, onPlantDelete, loading }) => {
   if (!plants || plants.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-6xl mb-4">🌱</div>
         <h4 className="text-lg font-medium text-gray-900 mb-2">No plants yet</h4>
         <p className="text-gray-600 mb-4">Start by adding your first plant to your collection!</p>
         <a 
