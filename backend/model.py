@@ -15,7 +15,7 @@ class User(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
-    password_hash = db.Column(db.String(128), nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)  # ADDED THIS LINE
 
     plants = db.relationship('Plants', secondary=plant_owner, back_populates='users')
     care_events = db.relationship('Care_Events', back_populates='user')

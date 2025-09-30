@@ -1,113 +1,104 @@
-import React from 'react';
-import PlantCard from './PlantCard';
+import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
+import Dashboard from '../components/Dashboard';
+import { apiService } from '../services/api';
 
-const Dashboard = ({ user, plants, onPlantDelete, loading }) => {
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-12">
-        <div className="text-xl text-gray-600">Loading plants...</div>
-      </div>
-    );
-  }
+const DashboardPage = ({ user, onLogout }) => {
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const loadDashboard = useCallback(async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const data = await apiService.getUserDashboard();
+      
+      if (data && data.user) {
+        setDashboardData(data);
+      } else if (data && data.message) {
+        throw new Error(data.message);
+      } else {
+        throw new Error('Invalid dashboard response');
+      }
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+      if (error.message === 'Not authenticated') {
+        onLogout();
+        navigate('/login');
+      } else {
+        toast.error('Error loading dashboard: ' + error.message);
+      }
+      setDashboardData(null);
+    }
+    setLoading(false);
+  }, [user, navigate, onLogout]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  const handlePlantDelete = (plantId) => {
+    setDashboardData(prev => ({
+      ...prev,
+      plants: prev.plants.filter(plant => plant.id !== plantId)
+    }));
+    toast.success('Plant deleted successfully!');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiService.logout();
+      onLogout();
+      navigate('/login');
+      toast.success('Logged out successfully!');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* User Welcome Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-          Welcome back, {user?.username}!
-        </h2>
-        <p className="text-gray-600">
-          You have {plants?.length || 0} plant{plants?.length !== 1 ? 's' : ''} in your care.
-        </p>
-        
-        {/* Quick Stats */}
-        {plants && plants.length > 0 && (
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-green-800">Needs Water</h3>
-              <p className="text-2xl font-bold text-green-600">
-                {plants.filter(plant => {
-              
-                  const lastWaterDate = new Date(plant.last_care_date);
-                  const daysSinceWater = Math.floor((new Date() - lastWaterDate) / (1000 * 60 * 60 * 24));
-                  return daysSinceWater > 7; // Example threshold
-                }).length}
-              </p>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Plant Care Dashboard</h1>
+              <p className="text-gray-600 mt-2">Manage and monitor your plant collection</p>
             </div>
             
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-800">Recently Cared For</h3>
-              <p className="text-2xl font-bold text-blue-600">
-                {plants.filter(plant => {
-                  const lastCareDate = new Date(plant.last_care_date);
-                  const daysSinceCare = Math.floor((new Date() - lastCareDate) / (1000 * 60 * 60 * 24));
-                  return daysSinceCare <= 2;
-                }).length}
-              </p>
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-700">Welcome, {user?.username}!</span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
             </div>
-            
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-yellow-800">No Care Record</h3>
-              <p className="text-2xl font-bold text-yellow-600">
-                {plants.filter(plant => !plant.last_care_date).length}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Plants Grid */}
-      <div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Plant Collection</h3>
-        
-        {plants && plants.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {plants.map(plant => (
-              <PlantCard 
-                key={plant.id} 
-                plant={plant} 
-                onPlantDelete={onPlantDelete}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-            <div className="text-6xl mb-4">🌱</div>
-            <h4 className="text-lg font-medium text-gray-900 mb-2">No plants yet</h4>
-            <p className="text-gray-600 mb-4">Start by adding your first plant to your collection!</p>
-            <a 
-              href="/add-plant" 
-              className="inline-block bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 transition-colors"
-            >
-              Add Your First Plant
-            </a>
-          </div>
-        )}
-      </div>
-
-      {/* Care Schedule Preview */}
-      {plants && plants.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Upcoming Care Schedule</h3>
-          <div className="space-y-3">
-            {plants.slice(0, 3).map(plant => (
-              <div key={plant.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                <div>
-                  <span className="font-medium">{plant.nickname}</span>
-                  <span className="text-gray-600 ml-2">({plant.species?.common_name})</span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Last cared: {plant.last_care_date ? 
-                    new Date(plant.last_care_date).toLocaleDateString() : 'Never'}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          </div>
+        ) : (
+          <Dashboard 
+            user={dashboardData?.user}
+            plants={dashboardData?.plants || []}
+            onPlantDelete={handlePlantDelete}
+            loading={loading}
+          />
+        )}
+      </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default DashboardPage;
