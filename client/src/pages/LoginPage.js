@@ -18,18 +18,23 @@ const LoginPage = ({ onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (values, { setSubmitting }) => {
+    console.log('🔄 Login form submitted:', values.username);
     setIsLoading(true);
     try {
       const result = await apiService.login(values);
+      console.log('✅ Login API response:', result);
       
       if (result.message === 'Login successful' && result.user) {
+        console.log('✅ Calling onLogin with user:', result.user.username);
         toast.success('Login successful!');
         onLogin(result.user);
         navigate('/dashboard');
       } else {
+        console.log('❌ Login failed:', result.message);
         throw new Error(result.message || 'Login failed');
       }
     } catch (error) {
+      console.error('❌ Login error:', error);
       toast.error(error.message || 'Error during login');
     }
     setIsLoading(false);

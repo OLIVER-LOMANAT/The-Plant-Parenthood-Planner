@@ -7,7 +7,7 @@ export const apiService = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(userData),
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
 
   login: (userData) => 
@@ -15,34 +15,29 @@ export const apiService = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(userData),
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
 
   logout: () => 
     fetch(`${API_BASE}/logout`, {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
 
   checkAuth: () => 
     fetch(`${API_BASE}/check-auth`, {
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
-
-  // Users
-  getUsers: () => fetch(`${API_BASE}/users`).then(res => res.json()),
-  
-  getUser: (id) => fetch(`${API_BASE}/user/${id}`).then(res => res.json()),
 
   // Plants
   getPlants: () => 
     fetch(`${API_BASE}/plants`, {
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
     
   getUserDashboard: () =>
     fetch(`${API_BASE}/dashboard`, {
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
     
   createPlant: (plantData) =>
@@ -50,16 +45,16 @@ export const apiService = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(plantData),
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
     
   deletePlant: (plantId) =>
     fetch(`${API_BASE}/plants/${plantId}`, {
       method: 'DELETE',
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json()),
 
-  // Species
+  // Species (public endpoints)
   getSpecies: () => fetch(`${API_BASE}/species`).then(res => res.json()),
   
   createSpecies: (speciesData) =>
@@ -75,6 +70,6 @@ export const apiService = {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(careData),
-      credentials: 'include'
+      credentials: 'include'  // IMPORTANT
     }).then(res => res.json())
 };

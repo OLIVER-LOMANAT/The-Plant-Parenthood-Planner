@@ -21,27 +21,39 @@ function App() {
 
   const checkAuth = async () => {
     try {
+      console.log('🔍 Checking authentication...');
       const result = await apiService.checkAuth();
+      console.log('🔍 Auth check result:', result);
+      
       if (result.authenticated && result.user) {
         setUser(result.user);
+        console.log('✅ User authenticated:', result.user.username);
+      } else {
+        console.log('❌ User not authenticated');
+        setUser(null);
       }
     } catch (error) {
-      console.error('Auth check failed:', error);
+      console.error('❌ Auth check failed:', error);
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleLogin = (userData) => {
+    console.log('✅ Login successful, setting user:', userData.username);
     setUser(userData);
   };
 
   const handleLogout = async () => {
+    console.log('🔄 Manual logout initiated');
     try {
       await apiService.logout();
+      console.log('✅ Logout API call successful');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout API error:', error);
     } finally {
+      console.log('🔴 Clearing user state');
       setUser(null);
     }
   };
@@ -57,36 +69,36 @@ function App() {
   return (
     <Router>
       <div className="App">
-        {user && <Navbar user={user} onLogout={handleLogout} />}
+        <Navbar user={user} onLogout={handleLogout} />
         <Routes>
           <Route 
             path="/login" 
             element={
-              user ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />
+              user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} />
             } 
           />
           <Route 
             path="/signup" 
             element={
-              user ? <Navigate to="/dashboard" /> : <SignupPage onLogin={handleLogin} />
+              user ? <Navigate to="/dashboard" replace /> : <SignupPage onLogin={handleLogin} />
             } 
           />
           <Route 
             path="/dashboard" 
             element={
-              user ? <DashboardPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" />
+              user ? <DashboardPage user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />
             } 
           />
           <Route 
             path="/add-plant" 
             element={
-              user ? <AddPlantPage user={user} /> : <Navigate to="/login" />
+              user ? <AddPlantPage user={user} /> : <Navigate to="/login" replace />
             } 
           />
           <Route 
             path="/" 
             element={
-              user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
+              user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
             } 
           />
           <Route path="*" element={<NotFoundPage />} />

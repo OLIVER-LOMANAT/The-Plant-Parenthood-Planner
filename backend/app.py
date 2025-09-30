@@ -12,10 +12,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:/
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 
+# IMPORTANT: CORS configuration with credentials
+CORS(app, 
+     supports_credentials=True,
+     origins=["http://localhost:3000", "https://your-vercel-app.vercel.app"],  # Add your Vercel URL
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization"])
+
 db.init_app(app)
 migrate = Migrate(app, db)
-
-CORS(app, supports_credentials=True)
 
 @app.route('/check-data', methods=['GET'])
 def check_data():
